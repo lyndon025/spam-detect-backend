@@ -1,0 +1,156 @@
+import os
+import re
+import string
+import joblib
+import numpy as np
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from dotenv import load_dotenv
+import google.generativeai as genai
+from lime.lime_text import LimeTextExplainer
+
+# 1. LOAD SECRETS
+load_dotenv()  # Reads .env file
+GEMINI_KEY = os.getenv("GEMINI_API_KEY")
+
+# 2. CONFIGURE GEN AI
+if GEMINI_KEY:
+    genai.configure(api_key=GEMINI_KEY)
+else:
+    print("⚠️ WARNING: GEMINI_API_KEY not set. AI features will fail.")
+
+# 3. SETUP FLASK
+app = Flask(__name__)
+CORS(app)
+
+# 4. LOAD MODEL & VECTORIZER
+try:
+    model = joblib.load("models/spam_mlp_model.pkl")
+    vectorizer = joblib.load("models/vectorizer.pkl")
+    # Initialize LIME Explainer once to save time
+    explainer = LimeTextExplainer(class_names=model.classes_)
+    print("✅ Model, Vectorizer, and LIME loaded.")
+except Exception as e:
+    print(f"❌ Error loading models: {e}")
+    model = None
+
+
+# 5. CLEANING FUNCTION (Must match training)
+def clean_text(text):
+    text = str(text).lower()
+    text = re.sub(r"http\S+|www\S+|https\S+", "", text)
+    text = re.sub(r"\d+", "", text)
+    text = text.translate(str.maketrans("", "", string.punctuation))
+    return text.strip()
+
+
+# 6. PIPELINE HELPER FOR LIME
+def predict_proba_pipeline(texts):
+    """
+    LIME needs a function that takes raw text list -> returns probabilities
+    """
+    cleaned_texts = [clean_text(t) for t in texts]
+    vec_texts = vectorizer.transform(cleaned_texts)
+    return model.predict_proba(vec_texts)
+
+
+# --- ROUTES ---
+
+
+@app.route("/", methods=["GET"])
+def home():
+    return "✅ Spam Detector Backend is Running"
+
+
+@app.route("/predict", methods=["POST"])
+def predict():
+    if not model:
+        return jsonify({"error": "Model not loaded"}), 500
+
+    data = request.get_json()
+    raw_text = data.get("text", "")
+
+    if not raw_text:
+        return jsonify({"error": "No text provided"}), 400
+
+    try:
+        # A. PREDICTION
+        cleaned = clean_text(raw_text)
+        vec_text = vectorizer.transform([cleaned])
+        prediction = model.predict(vec_text)[0]
+        probs = model.predict_proba(vec_text)[0]
+        confidence = max(probs) * 100
+
+        # B. TRAFFIC LIGHT LOGIC
+        danger_labels = ["spam", "scam", "smishing", "finance_scam"]
+        caution_labels = ["ads", "promo"]
+        category = "safe"
+
+        if prediction in danger_labels:
+            category = "danger"
+        elif prediction in caution_labels:
+            category = "caution"
+
+        if confidence < 50.0:
+            category = "safe"
+
+        # C. LINK DETECTION (Regex)
+        link_pattern = r"(http|https|www|\.com|\.ph|\.net|\.org|\.gov|\.ly)"
+        has_link = bool(re.search(link_pattern, raw_text, re.IGNORECASE))
+
+        # D. LIME EXPLAINABILITY (The "Why")
+        # We limit num_samples=1000 to keep it fast (default is 5000)
+        exp = explainer.explain_instance(
+            raw_text, predict_proba_pipeline, num_features=6, num_samples=1000
+        )
+        # Convert LIME result to a simple list: [('word', weight), ...]
+        lime_features = exp.as_list()
+
+        return jsonify(
+            {
+                "status": "success",
+                "prediction": prediction.upper(),
+                "confidence": f"{confidence:.2f}",
+                "category": category,
+                "has_link": has_link,
+                "lime_data": lime_features,  # Send weighted words to frontend
+            }
+        )
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/ask-gemini", methods=["POST"])
+def ask_gemini():
+    """
+    Secure endpoint.
+    The prompt is hidden here on the server.
+    The API Key is hidden in .env.
+    """
+    if not GEMINI_KEY:
+        return jsonify({"analysis": "Server missing API Key."}), 500
+
+    data = request.get_json()
+    text = data.get("text", "")
+
+    try:
+        prompt = (
+            f"Analyze this SMS message: '{text}'. No need to repeat it. "
+            "1. Is it a Scam, Spam, or Safe? "
+            "2. Explain why in 1 short sentence. "
+            "3. If it's a scam, what tactic could it be (e.g., Urgency, Phishing)?"
+        )
+
+        ai_model = genai.GenerativeModel("gemini-2.5-flash")
+        response = ai_model.generate_content(prompt)
+
+        return jsonify({"analysis": response.text})
+    except Exception as e:
+        return jsonify({"analysis": f"AI Error: {str(e)}"}), 500
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
