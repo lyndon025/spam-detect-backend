@@ -160,7 +160,7 @@ def ask_gemini():
 
         # Using OpenRouter
         response = client.chat.completions.create(
-            model="google/gemini-2.5-flash-001",
+            model="google/gemini-2.5-flash-lite",
             messages=[{"role": "user", "content": prompt}],
             extra_headers={
                 "HTTP-Referer": "https://spam-detect-ph.vercel.app",
