@@ -87,9 +87,11 @@ def predict():
         cleaned = clean_text(raw_text)
         vec_text = vectorizer.transform([cleaned])
 
-        prediction = model.predict(vec_text)[0]
+        # Get probabilities to find the winning class index
         probs = model.predict_proba(vec_text)[0]
-        confidence = max(probs) * 100
+        prediction_idx = np.argmax(probs)  # Index of the highest probability
+        prediction = model.classes_[prediction_idx]  # Name of the class
+        confidence = probs[prediction_idx] * 100
 
         # B. TRAFFIC LIGHT LOGIC
         danger_labels = ["spam", "scam", "smishing", "finance_scam"]
@@ -109,13 +111,17 @@ def predict():
         has_link = bool(re.search(link_pattern, raw_text, re.IGNORECASE))
 
         # D. LIME EXPLAINABILITY (The "Why")
-        # We limit num_samples=1000 to keep it fast (default is 5000)
+        # Explicitly explain the predicted class (labels=(prediction_idx,))
         exp = explainer.explain_instance(
-            raw_text, predict_proba_pipeline, num_features=6, num_samples=1000
+            raw_text,
+            predict_proba_pipeline,
+            num_features=6,
+            num_samples=1000,
+            labels=(prediction_idx,),  # <--- CRITICAL FIX: Explain the predicted class
         )
 
-        # Convert LIME result to a simple list: [('word', weight), ...]
-        lime_features = exp.as_list()
+        # Get features for the predicted class
+        lime_features = exp.as_list(label=prediction_idx)
 
         return jsonify(
             {
@@ -156,7 +162,7 @@ def ask_gemini():
         # Using OpenRouter
         response = client.chat.completions.create(
             # You can change this to any model on OpenRouter (e.g. "meta-llama/llama-3-8b-instruct")
-            model="google/gemini-2.5-flash-001",
+            model="google/gemini-2.0-flash-001",
             messages=[{"role": "user", "content": prompt}],
             extra_headers={
                 "HTTP-Referer": "https://spam-detect-ph.vercel.app",  # Optional: Your site URL
