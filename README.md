@@ -16,5 +16,5 @@ This is the Python/Flask API for the **Spam Detect PH** capstone project. It ser
 
 ## 🔧 Setup
 1. Install dependencies: `pip install -r requirements.txt`
-2. Create `.env` file with `GEMINI_API_KEY`.
+2. Create `.env` file with `OPENROUTER_API_KEY`.
 3. Run server: `python app.py`
