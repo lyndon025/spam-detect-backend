@@ -111,13 +111,12 @@ def predict():
         has_link = bool(re.search(link_pattern, raw_text, re.IGNORECASE))
 
         # D. LIME EXPLAINABILITY (The "Why")
-        # Explicitly explain the predicted class (labels=(prediction_idx,))
         exp = explainer.explain_instance(
             raw_text,
             predict_proba_pipeline,
             num_features=6,
             num_samples=1000,
-            labels=(prediction_idx,),  # <--- CRITICAL FIX: Explain the predicted class
+            labels=(prediction_idx,),
         )
 
         # Get features for the predicted class
@@ -161,12 +160,11 @@ def ask_gemini():
 
         # Using OpenRouter
         response = client.chat.completions.create(
-            # You can change this to any model on OpenRouter (e.g. "meta-llama/llama-3-8b-instruct")
-            model="google/gemini-2.0-flash-001",
+            model="google/gemini-2.5-flash-001",
             messages=[{"role": "user", "content": prompt}],
             extra_headers={
-                "HTTP-Referer": "https://spam-detect-ph.vercel.app",  # Optional: Your site URL
-                "X-Title": "Spam Detect PH",  # Optional: Your App Name
+                "HTTP-Referer": "https://spam-detect-ph.vercel.app",
+                "X-Title": "Spam Detect PH",
             },
         )
 
