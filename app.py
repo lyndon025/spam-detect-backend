@@ -6,18 +6,25 @@ import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
-import google.generativeai as genai
 from lime.lime_text import LimeTextExplainer
+
+# NEW: Import OpenAI for OpenRouter
+from openai import OpenAI
 
 # 1. LOAD SECRETS
 load_dotenv()  # Reads .env file
-GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 
-# 2. CONFIGURE GEN AI
-if GEMINI_KEY:
-    genai.configure(api_key=GEMINI_KEY)
-else:
-    print("⚠️ WARNING: GEMINI_API_KEY not set. AI features will fail.")
+# NEW: OpenRouter Configuration
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+
+if not OPENROUTER_API_KEY:
+    print("⚠️ WARNING: OPENROUTER_API_KEY not set. AI features will fail.")
+
+# Initialize Client (OpenRouter uses standard OpenAI interface)
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=OPENROUTER_API_KEY,
+)
 
 # 3. SETUP FLASK
 app = Flask(__name__)
@@ -27,8 +34,10 @@ CORS(app)
 try:
     model = joblib.load("models/spam_mlp_model.pkl")
     vectorizer = joblib.load("models/vectorizer.pkl")
+
     # Initialize LIME Explainer once to save time
     explainer = LimeTextExplainer(class_names=model.classes_)
+
     print("✅ Model, Vectorizer, and LIME loaded.")
 except Exception as e:
     print(f"❌ Error loading models: {e}")
@@ -77,6 +86,7 @@ def predict():
         # A. PREDICTION
         cleaned = clean_text(raw_text)
         vec_text = vectorizer.transform([cleaned])
+
         prediction = model.predict(vec_text)[0]
         probs = model.predict_proba(vec_text)[0]
         confidence = max(probs) * 100
@@ -84,8 +94,8 @@ def predict():
         # B. TRAFFIC LIGHT LOGIC
         danger_labels = ["spam", "scam", "smishing", "finance_scam"]
         caution_labels = ["ads", "promo"]
-        category = "safe"
 
+        category = "safe"
         if prediction in danger_labels:
             category = "danger"
         elif prediction in caution_labels:
@@ -103,6 +113,7 @@ def predict():
         exp = explainer.explain_instance(
             raw_text, predict_proba_pipeline, num_features=6, num_samples=1000
         )
+
         # Convert LIME result to a simple list: [('word', weight), ...]
         lime_features = exp.as_list()
 
@@ -125,12 +136,11 @@ def predict():
 @app.route("/ask-gemini", methods=["POST"])
 def ask_gemini():
     """
-    Secure endpoint.
-    The prompt is hidden here on the server.
-    The API Key is hidden in .env.
+    Replaced Google Gemini SDK with OpenRouter (via OpenAI SDK).
+    Kept route name '/ask-gemini' so frontend doesn't break.
     """
-    if not GEMINI_KEY:
-        return jsonify({"analysis": "Server missing API Key."}), 500
+    if not OPENROUTER_API_KEY:
+        return jsonify({"analysis": "Server missing OpenRouter API Key."}), 500
 
     data = request.get_json()
     text = data.get("text", "")
@@ -143,11 +153,22 @@ def ask_gemini():
             "3. If it's a scam, what tactic could it be (e.g., Urgency, Phishing)?"
         )
 
-        ai_model = genai.GenerativeModel("gemini-2.5-flash")
-        response = ai_model.generate_content(prompt)
+        # Using OpenRouter
+        response = client.chat.completions.create(
+            # You can change this to any model on OpenRouter (e.g. "meta-llama/llama-3-8b-instruct")
+            model="google/gemini-2.5-flash-001",
+            messages=[{"role": "user", "content": prompt}],
+            extra_headers={
+                "HTTP-Referer": "https://spam-detect-ph.vercel.app",  # Optional: Your site URL
+                "X-Title": "Spam Detect PH",  # Optional: Your App Name
+            },
+        )
 
-        return jsonify({"analysis": response.text})
+        analysis_text = response.choices[0].message.content
+        return jsonify({"analysis": analysis_text})
+
     except Exception as e:
+        print(f"OpenRouter Error: {e}")
         return jsonify({"analysis": f"AI Error: {str(e)}"}), 500
 
 
