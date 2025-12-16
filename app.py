@@ -32,8 +32,8 @@ CORS(app)
 
 # 4. LOAD MODEL & VECTORIZER
 try:
-    model = joblib.load("models/spam_mlp_model.pkl")
-    vectorizer = joblib.load("models/vectorizer.pkl")
+    model = joblib.load("src/models/spam_mlp_model.pkl")
+    vectorizer = joblib.load("src/models/vectorizer.pkl")
 
     # Initialize LIME Explainer once to save time
     explainer = LimeTextExplainer(class_names=model.classes_)
