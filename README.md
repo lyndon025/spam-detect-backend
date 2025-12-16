@@ -6,7 +6,7 @@ This is the Python/Flask API for the **Spam Detect PH** capstone project. It ser
 - **Framework:** Flask (Python)
 - **ML Model:** Scikit-Learn (MLPClassifier + TF-IDF)
 - **Explainability:** LIME (Local Interpretable Model-agnostic Explanations)
-- **AI Integration:** Google Gemini 1.5 Flash
+- **AI Integration:** Google Gemini 2.5 Flash via OpenRouter
 - **Deployment:** Render
 
 ## 📂 Folder Structure
