@@ -162,6 +162,8 @@ def ask_gemini():
         response = client.chat.completions.create(
             model="google/gemini-2.5-flash-lite",
             messages=[{"role": "user", "content": prompt}],
+            max_tokens=256,
+            temperature=0.4,
             extra_headers={
                 "HTTP-Referer": "https://spam-detect-ph.vercel.app",
                 "X-Title": "Spam Detect PH",
