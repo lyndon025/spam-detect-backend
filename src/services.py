@@ -94,7 +94,7 @@ class AIService:
             max_tokens=256,
             temperature=0.4,
             extra_headers={
-                "HTTP-Referer": "https://spam-detect-ph.vercel.app",
+                "HTTP-Referer": "https://spam-detectph.vercel.app",
                 "X-Title": "Spam Detect PH",
             },
         )

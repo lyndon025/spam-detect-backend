@@ -7,6 +7,7 @@ def create_app():
     # Explicitly allow the frontend origin
     CORS(app, resources={r"/*": {"origins": [
         "https://spam-detectph.vercel.app",
+        "https://spam-detectph.vercel.app/",
         "http://127.0.0.1:5500", 
         "http://localhost:5500",
         "http://127.0.0.1:3000",
