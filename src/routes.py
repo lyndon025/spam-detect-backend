@@ -53,8 +53,10 @@ def ask_gemini():
     try:
         data = request.get_json()
         text = data.get("text", "")
+        print(f"DEBUG: Processing /ask-gemini for text: {text[:50]}...")
         
         analysis_text = ai_service.analyze_sms(text)
+        print("DEBUG: AI Analysis complete.")
         return jsonify({"analysis": analysis_text})
 
     except Exception as e:

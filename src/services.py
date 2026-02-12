@@ -89,6 +89,7 @@ class AIService:
         )
 
         try:
+            print(f"DEBUG: Calling OpenRouter for model: google/gemini-2.5-flash-lite")
             response = self.client.chat.completions.create(
                 model="google/gemini-2.5-flash-lite",
                 messages=[{"role": "user", "content": prompt}],
@@ -99,6 +100,7 @@ class AIService:
                     "X-Title": "Spam Detect PH",
                 },
             )
+            print("DEBUG: OpenRouter response received.")
             return response.choices[0].message.content
         except Exception as e:
             print(f"OpenRouter API Error: {e}")
