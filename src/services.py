@@ -88,17 +88,21 @@ class AIService:
             "3. If it's a scam, what tactic could it be (e.g., Urgency, Phishing)?"
         )
 
-        response = self.client.chat.completions.create(
-            model="google/gemini-2.5-flash-lite",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=256,
-            temperature=0.4,
-            extra_headers={
-                "HTTP-Referer": "https://spam-detectph.vercel.app",
-                "X-Title": "Spam Detect PH",
-            },
-        )
-        return response.choices[0].message.content
+        try:
+            response = self.client.chat.completions.create(
+                model="google/gemini-2.5-flash-lite",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=256,
+                temperature=0.4,
+                extra_headers={
+                    "HTTP-Referer": "https://spam-detectph.vercel.app",
+                    "X-Title": "Spam Detect PH",
+                },
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"OpenRouter API Error: {e}")
+            return "AI Analysis is currently unavailable. Please try again later."
 
 # Singleton instances
 model_service = ModelService()

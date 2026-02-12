@@ -10,6 +10,10 @@ main_bp = Blueprint('main', __name__)
 def home():
     return "✅ Spam Detector Backend is Running"
 
+@main_bp.route("/test-cors", methods=["GET"])
+def test_cors():
+    return jsonify({"message": "CORS is working!", "status": "success"})
+
 @main_bp.route("/predict", methods=["POST"])
 def predict():
     try:
