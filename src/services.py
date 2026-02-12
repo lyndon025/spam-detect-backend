@@ -11,20 +11,25 @@ class ModelService:
         self.model = None
         self.vectorizer = None
         self.explainer = None
-        self._load_models()
+        # Models will be loaded on the first request (Lazy Loading)
 
     def _load_models(self):
+        if self.model is not None:
+            return
+
         try:
             # Paths relative to the root where the app is run
+            print("⏳ Loading Model and Vectorizer...")
             self.model = joblib.load("src/models/spam_mlp_model.pkl")
             self.vectorizer = joblib.load("src/models/vectorizer.pkl")
             self.explainer = LimeTextExplainer(class_names=self.model.classes_)
             print("✅ Model, Vectorizer, and LIME loaded.")
         except Exception as e:
             print(f"❌ Error loading models: {e}")
-            self.model = None
+            raise e
 
     def predict_proba_pipeline(self, texts):
+        self._load_models() # Ensure loaded
         """
         LIME needs a function that takes raw text list -> returns probabilities
         """
@@ -33,6 +38,7 @@ class ModelService:
         return self.model.predict_proba(vec_texts)
 
     def predict(self, raw_text):
+        self._load_models()
         if not self.model:
             raise Exception("Model not loaded")
 
@@ -65,7 +71,7 @@ class ModelService:
             raw_text,
             self.predict_proba_pipeline,
             num_features=6,
-            num_samples=1000,
+            num_samples=250,
             labels=(prediction_idx,),
         )
         return exp.as_list(label=prediction_idx)
