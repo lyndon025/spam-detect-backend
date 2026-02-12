@@ -20,4 +20,4 @@ EXPOSE 8080
 ENV PORT=8080
 
 # Run the application using Gunicorn
-CMD gunicorn --bind 0.0.0.0:$PORT --timeout 120 app:app
+CMD gunicorn --bind 0.0.0.0:$PORT --timeout 120 --workers 1 app:app

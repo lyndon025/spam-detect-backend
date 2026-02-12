@@ -19,9 +19,9 @@ class ModelService:
 
         try:
             # Paths relative to the root where the app is run
-            print("⏳ Loading Model and Vectorizer...")
-            self.model = joblib.load("src/models/spam_mlp_model.pkl")
-            self.vectorizer = joblib.load("src/models/vectorizer.pkl")
+            print("⏳ Loading Model and Vectorizer (Matrix Mode)...")
+            self.model = joblib.load("src/models/spam_mlp_model.pkl", mmap_mode='r')
+            self.vectorizer = joblib.load("src/models/vectorizer.pkl", mmap_mode='r')
             self.explainer = LimeTextExplainer(class_names=self.model.classes_)
             print("✅ Model, Vectorizer, and LIME loaded.")
         except Exception as e:
