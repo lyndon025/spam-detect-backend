@@ -7,22 +7,25 @@ This is the Python/Flask API for the **Spam Detect PH** capstone project. It ser
 - **ML Model:** Scikit-Learn (MLPClassifier + TF-IDF)
 - **Explainability:** LIME (Local Interpretable Model-agnostic Explanations)
 - **AI Integration:** Google Gemini 2.5 Flash via OpenRouter
-- **Deployment:** Fly.io (Primary), Render (Alternative)
+- **Deployment:** Render (Primary), Fly.io (Legacy)
 
 ## 📂 Folder Structure
 - `app.py`: Main server entry point.
 - `src/`: Application source code (routes, services, utils).
 - `models/`: Trained ML models (`.pkl`).
-- `fly.toml`: Fly.io configuration (set for 24/7 uptime).
+- `render.yaml`: Render blueprint for automated deployment.
 
-## 🌍 Deployment (Fly.io)
-The backend is configured to run on **Fly.io** with a 24/7 uptime configuration (~$3/mo).
+## 🌍 Deployment (Render)
+The backend is configured to run on **Render** (using `render.yaml`).
 
-1. **Install Fly CLI:** [https://fly.io/docs/hands-on/install-flyctl/](https://fly.io/docs/hands-on/install-flyctl/)
-2. **Login:** `fly auth login`
-3. **Deploy:** `fly deploy`
+1. **Connect to GitHub:** Link your repository to Render.
+2. **Auto-Deploy:** Render will automatically build via Docker using the provided `Dockerfile`.
 
-*Note: The `fly.toml` is configured with `min_machines_running = 1` and `auto_stop_machines = false` to prevent cold starts.*
+*Note: Free instances on Render may spin down after inactivity. The frontend includes a "waking up" message to handle this.*
+
+## 🏗️ Legacy Deployment (Fly.io)
+Previously hosted on Fly.io. To restart:
+1. `fly deploy`
 
 ## 🔧 Local Development
 1. **Install dependencies:** `pip install -r requirements.txt`
